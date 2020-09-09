@@ -171,6 +171,53 @@ void q_reverse(queue_t *q)
  */
 void q_sort(queue_t *q)
 {
-    /* TODO: You need to write the code for this function */
-    /* TODO: Remove the above comment when you are about to implement. */
+    // merge sort
+    int n = q_size(q);
+    if (!n)
+        return;
+    list_ele_t root = {.next = q->head};
+    list_ele_t *tail = NULL;
+    for (int k = 1; k < n; k *= 2) {
+        tail = &root;
+        while (tail->next) {
+            // setup next sublists l1 and l2
+            list_ele_t *cur = tail, *l1 = cur->next, *l2;
+            int n1 = 0;
+            int n2 = 0;
+            while (cur->next && n1 < k) {
+                ++n1;
+                cur = cur->next;
+            }
+            l2 = cur->next;
+            while (cur->next && n2 < k) {
+                ++n2;
+                cur = cur->next;
+            }
+            list_ele_t *next = cur->next;
+            list_ele_t *prevtail = tail;
+            prevtail->next = NULL;
+
+            // merge p and q
+            while (n1 || n2) {
+                if (!n2 || (n1 && strcmp(l1->value, l2->value) < 0)) {
+                    if (!prevtail->next)
+                        prevtail->next = l1;
+                    --n1;
+                    tail->next = l1;
+                    tail = l1;
+                    l1 = l1->next;
+                } else {
+                    if (!prevtail->next)
+                        prevtail->next = l2;
+                    --n2;
+                    tail->next = l2;
+                    tail = l2;
+                    l2 = l2->next;
+                }
+            }
+            tail->next = next;
+        }
+    }
+    q->head = root.next;
+    q->tail = tail ? tail : q->head;
 }
