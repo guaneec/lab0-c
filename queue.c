@@ -52,6 +52,8 @@ bool q_insert_head(queue_t *q, char *s)
         return false;
     newh = malloc(sizeof(list_ele_t));
     /* Don't forget to allocate space for the string and copy it */
+    if (!newh)
+        return false;
     newh->value = strdup(s);
     /* What if either call to malloc returns NULL? */
     if (!newh->value) {
