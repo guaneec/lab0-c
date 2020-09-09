@@ -1,9 +1,10 @@
+#include "queue.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "harness.h"
-#include "queue.h"
 
 /*
  * Create empty queue.
@@ -112,6 +113,7 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
         return false;
     if (sp) {
         strncpy(sp, q->head->value, bufsize);
+        sp[bufsize - 1] = '\0';
     }
     list_ele_t *e = q->head;
     q->head = q->head->next;
