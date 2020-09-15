@@ -169,6 +169,51 @@ void q_reverse(queue_t *q)
     q->tail = oldhead;
 }
 
+void split_list(list_ele_t *src, list_ele_t **front, list_ele_t **back)
+{
+    list_ele_t *fast = src->next, *slow = src;
+    while (fast) {
+        fast = fast->next;
+        if (fast) {
+            slow = slow->next;
+            fast = fast->next;
+        }
+    }
+    *front = src;
+    *back = slow->next;
+    slow->next = NULL;
+}
+
+list_ele_t *merge_sorted(list_ele_t *a, list_ele_t *b)
+{
+    list_ele_t root = {.next = NULL};
+    list_ele_t *tail = &root;
+    while (a || b) {
+        list_ele_t **c =
+            (!b || (a && strcmp(a->value, b->value) <= 0)) ? &a : &b;
+        if (!(root.next))
+            root.next = *c;
+        tail = tail->next = *c;
+        *c = (*c)->next;
+    }
+    return root.next;
+}
+
+// adapted from https://www.geeksforgeeks.org/merge-sort-for-linked-list/
+// my version was just a bit too slow :'(
+void mergesort(list_ele_t **headref)
+{
+    list_ele_t *head = *headref;
+    list_ele_t *a, *b;
+    if (!head || !(head->next)) {
+        return;
+    }
+    split_list(head, &a, &b);
+    mergesort(&a);
+    mergesort(&b);
+    *headref = merge_sorted(a, b);
+}
+
 /*
  * Sort elements of queue in ascending order
  * No effect if q is NULL or empty. In addition, if q has only one
@@ -180,49 +225,9 @@ void q_sort(queue_t *q)
     int n = q_size(q);
     if (!n)
         return;
-    list_ele_t root = {.next = q->head};
-    list_ele_t *tail = NULL;
-    for (int k = 1; k < n; k *= 2) {
-        tail = &root;
-        while (tail->next) {
-            // setup next sublists l1 and l2
-            list_ele_t *cur = tail, *l1 = cur->next, *l2;
-            int n1 = 0;
-            int n2 = 0;
-            while (cur->next && n1 < k) {
-                ++n1;
-                cur = cur->next;
-            }
-            l2 = cur->next;
-            while (cur->next && n2 < k) {
-                ++n2;
-                cur = cur->next;
-            }
-            list_ele_t *next = cur->next;
-            list_ele_t *prevtail = tail;
-            prevtail->next = NULL;
-
-            // merge p and q
-            while (n1 || n2) {
-                if (!n2 || (n1 && strcmp(l1->value, l2->value) < 0)) {
-                    if (!prevtail->next)
-                        prevtail->next = l1;
-                    --n1;
-                    tail->next = l1;
-                    tail = l1;
-                    l1 = l1->next;
-                } else {
-                    if (!prevtail->next)
-                        prevtail->next = l2;
-                    --n2;
-                    tail->next = l2;
-                    tail = l2;
-                    l2 = l2->next;
-                }
-            }
-            tail->next = next;
-        }
-    }
-    q->head = root.next;
-    q->tail = tail ? tail : q->head;
+    mergesort(&q->head);
+    list_ele_t *c;
+    for (c = q->head; c->next; c = c->next)
+        ;
+    q->tail = c;
 }
