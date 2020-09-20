@@ -39,7 +39,7 @@
 #include "constant.h"
 #include "ttest.h"
 
-#define enough_measurements 100000
+extern int enough_measurements;
 
 extern const int drop_size;
 extern const size_t chunk_size;

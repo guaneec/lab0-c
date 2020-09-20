@@ -18,6 +18,7 @@
 
 /* Some global values */
 bool simulation = false;
+int enough_measurements = 100000;
 static cmd_ptr cmd_list = NULL;
 static param_ptr param_list = NULL;
 static bool block_flag = false;
@@ -104,6 +105,8 @@ void init_cmd()
     add_param("verbose", &verblevel, "Verbosity level", NULL);
     add_param("error", &err_limit, "Number of errors until exit", NULL);
     add_param("echo", (int *) &echo, "Do/don't echo commands", NULL);
+    add_param("measures", &enough_measurements,
+              "Number of measurements for simulation", NULL);
 
     init_in();
     init_time(&last_time);
