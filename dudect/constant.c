@@ -98,7 +98,7 @@ void measure(int64_t *before_ticks,
             queue_t *q1 = q_new();
             queue_t *qi = classes[i] ? q1 : q0;
             for (int j = 0;
-                 j < *(uint16_t *) (input_data + j * chunk_size) % 10000; ++j) {
+                 j < *(uint16_t *) (input_data + i * chunk_size) % 10000; ++j) {
                 q_insert_head(q1, get_random_string());
             }
             before_ticks[i] = cpucycles();
@@ -113,7 +113,7 @@ void measure(int64_t *before_ticks,
             queue_t *q1 = q_new();
             queue_t *qi = classes[i] ? q1 : q0;
             for (int j = 0;
-                 j < *(uint16_t *) (input_data + j * chunk_size) % 10000; ++j) {
+                 j < *(uint16_t *) (input_data + i * chunk_size) % 10000; ++j) {
                 q_insert_head(q1, get_random_string());
             }
             before_ticks[i] = cpucycles();
