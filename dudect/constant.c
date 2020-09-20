@@ -6,11 +6,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include "console.h"
 #include "cpucycles.h"
 #include "queue.h"
 #include "random.h"
 
-#define NR_MEASURE 4000
+#define NR_MEASURE 150
 /* Allow random number range from 0 to 65535 */
 const size_t chunk_size = 16;
 /* Number of measurements per test */

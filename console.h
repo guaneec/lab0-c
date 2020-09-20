@@ -8,6 +8,7 @@
 /* Simulation flag of console option */
 extern bool simulation;
 extern bool old_measure;
+extern bool write_data;
 
 /* Each command defined in terms of a function */
 typedef bool (*cmd_function)(int argc, char *argv[]);

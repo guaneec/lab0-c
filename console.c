@@ -19,6 +19,7 @@
 /* Some global values */
 bool simulation = false;
 bool old_measure = false;
+bool write_data;
 int enough_measurements = 100000;
 static cmd_ptr cmd_list = NULL;
 static param_ptr param_list = NULL;
@@ -109,6 +110,8 @@ void init_cmd()
     add_param("measures", &enough_measurements,
               "Number of measurements for simulation", NULL);
     add_param("old", (int *) &old_measure, "Use the old measure function",
+              NULL);
+    add_param("write", (int *) &write_data, "Write measurements to ./meas.txt",
               NULL);
 
     init_in();

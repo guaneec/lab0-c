@@ -123,6 +123,16 @@ static bool report(void)
     }
 }
 
+void write_times(int64_t *exec_times)
+{
+    static FILE *f = NULL;
+    if (!f)
+        f = fopen("./meas.txt", "w");
+    for (int i = drop_size; i < number_measurements - drop_size; ++i) {
+        fprintf(f, "%ld\n", exec_times[i]);
+    }
+}
+
 static bool doit(int mode)
 {
     int64_t *before_ticks = calloc(number_measurements + 1, sizeof(int64_t));
@@ -145,6 +155,9 @@ static bool doit(int mode)
         measure(before_ticks, after_ticks, input_data, classes, mode);
     }
     differentiate(exec_times, before_ticks, after_ticks);
+    if (write_data) {
+        write_times(exec_times);
+    }
     update_statistics(exec_times, classes);
     bool ret = report();
 
