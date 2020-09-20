@@ -93,7 +93,7 @@ void measure(int64_t *before_ticks,
 {
     assert(mode == test_insert_tail || mode == test_size);
     if (mode == test_insert_tail) {
-        for (size_t i = drop_size; i < number_measurements - drop_size; i++) {
+        for (size_t i = 0; i < number_measurements; i++) {
             char *s = get_random_string();
             queue_t *q0 = q_new();
             queue_t *q1 = q_new();
@@ -109,7 +109,7 @@ void measure(int64_t *before_ticks,
             q_free(q1);
         }
     } else {
-        for (size_t i = drop_size; i < number_measurements - drop_size; i++) {
+        for (size_t i = 0; i < number_measurements; i++) {
             queue_t *q0 = q_new();
             queue_t *q1 = q_new();
             queue_t *qi = classes[i] ? q1 : q0;
