@@ -46,6 +46,7 @@ qtest: $(OBJS)
 	@mkdir -p .$(DUT_DIR)
 	$(VECHO) "  CC\t$@\n"
 	$(Q)$(CC) -o $@ $(CFLAGS) -c -MMD -MF .$@.d $<
+	$(Q)$(CC) -fverbose-asm -o $@.s $(CFLAGS) -S -MMD -MF .$@.d $<
 
 check: qtest
 	./$< -v 3 -f traces/trace-eg.cmd
@@ -72,6 +73,7 @@ clean:
 	rm -f $(OBJS) $(deps) *~ qtest /tmp/qtest.*
 	rm -rf .$(DUT_DIR)
 	rm -rf *.dSYM
+	rm -rf *.s
 	(cd traces; rm -f *~)
 
 -include $(deps)
