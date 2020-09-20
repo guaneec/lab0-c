@@ -39,8 +39,7 @@
 #include "constant.h"
 #include "ttest.h"
 
-#define enough_measurements 10000
-#define test_tries 10
+#define enough_measurements 100000
 
 extern const int drop_size;
 extern const size_t chunk_size;
@@ -163,18 +162,13 @@ bool is_insert_tail_const(void)
     bool result = false;
     t = malloc(sizeof(t_ctx));
 
-    for (int cnt = 0; cnt < test_tries; ++cnt) {
-        printf("Testing insert_tail...(%d/%d)\n\n", cnt, test_tries);
-        init_once();
-        for (int i = 0;
-             i <
-             enough_measurements / (number_measurements - drop_size * 2) + 1;
-             ++i)
-            result = doit(0);
-        printf("\033[A\033[2K\033[A\033[2K");
-        if (result == true)
-            break;
-    }
+    printf("Testing insert_tail...\n\n");
+    init_once();
+    for (int i = 0;
+         i < enough_measurements / (number_measurements - drop_size * 2) + 1;
+         ++i)
+        result = doit(0);
+    printf("\033[A\033[2K\033[A\033[2K");
     free(t);
     return result;
 }
@@ -183,18 +177,13 @@ bool is_size_const(void)
 {
     bool result = false;
     t = malloc(sizeof(t_ctx));
-    for (int cnt = 0; cnt < test_tries; ++cnt) {
-        printf("Testing size...(%d/%d)\n\n", cnt, test_tries);
-        init_once();
-        for (int i = 0;
-             i <
-             enough_measurements / (number_measurements - drop_size * 2) + 1;
-             ++i)
-            result = doit(1);
-        printf("\033[A\033[2K\033[A\033[2K");
-        if (result == true)
-            break;
-    }
+    printf("Testing size...\n\n");
+    init_once();
+    for (int i = 0;
+         i < enough_measurements / (number_measurements - drop_size * 2) + 1;
+         ++i)
+        result = doit(1);
+    printf("\033[A\033[2K\033[A\033[2K");
     free(t);
     return result;
 }
