@@ -139,7 +139,11 @@ static bool doit(int mode)
 
     prepare_inputs(input_data, classes);
 
-    measure(before_ticks, after_ticks, input_data, classes, mode);
+    if (old_measure) {
+        measure_old(before_ticks, after_ticks, input_data, mode);
+    } else {
+        measure(before_ticks, after_ticks, input_data, classes, mode);
+    }
     differentiate(exec_times, before_ticks, after_ticks);
     update_statistics(exec_times, classes);
     bool ret = report();
@@ -155,6 +159,7 @@ static bool doit(int mode)
 
 static void init_once(void)
 {
+    init_dut();
     t_init(t);
 }
 

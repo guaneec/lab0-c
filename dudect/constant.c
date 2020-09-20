@@ -19,9 +19,16 @@ const int drop_size = 20;
 /* Maintain a queue independent from the qtest since
  * we do not want the test to affect the original functionality
  */
+static queue_t *q = NULL;
 static char random_string[NR_MEASURE][8];
 static int random_string_iter = 0;
 enum { test_insert_tail, test_size };
+
+/* Implement the necessary queue interface to simulation */
+void init_dut(void)
+{
+    q = NULL;
+}
 
 char *get_random_string(void)
 {
@@ -34,7 +41,7 @@ void prepare_inputs(uint8_t *input_data, uint8_t *classes)
     randombytes(input_data, number_measurements * chunk_size);
     for (size_t i = 0; i < number_measurements; i++) {
         classes[i] = randombit();
-        if (classes[i] == 0)
+        if (classes[i] == 0 && old_measure)
             *(uint16_t *) (input_data + i * chunk_size) = 0x00;
     }
 
@@ -45,8 +52,37 @@ void prepare_inputs(uint8_t *input_data, uint8_t *classes)
     }
 }
 
-#define MEASURE_COMMAND(c) do
-
+void measure_old(int64_t *before_ticks,
+                 int64_t *after_ticks,
+                 uint8_t *input_data,
+                 int mode)
+{
+    assert(mode == test_insert_tail || mode == test_size);
+    if (mode == test_insert_tail) {
+        for (size_t i = drop_size; i < number_measurements - drop_size; i++) {
+            char *s = get_random_string();
+            dut_new();
+            dut_insert_head(
+                get_random_string(),
+                *(uint16_t *) (input_data + i * chunk_size) % 10000);
+            before_ticks[i] = cpucycles();
+            dut_insert_tail(s, 1);
+            after_ticks[i] = cpucycles();
+            dut_free();
+        }
+    } else {
+        for (size_t i = drop_size; i < number_measurements - drop_size; i++) {
+            dut_new();
+            dut_insert_head(
+                get_random_string(),
+                *(uint16_t *) (input_data + i * chunk_size) % 10000);
+            before_ticks[i] = cpucycles();
+            dut_size(1);
+            after_ticks[i] = cpucycles();
+            dut_free();
+        }
+    }
+}
 
 void measure(int64_t *before_ticks,
              int64_t *after_ticks,
@@ -60,13 +96,13 @@ void measure(int64_t *before_ticks,
             char *s = get_random_string();
             queue_t *q0 = q_new();
             queue_t *q1 = q_new();
-            queue_t *q = classes[i] ? q1 : q0;
+            queue_t *qi = classes[i] ? q1 : q0;
             for (int j = 0;
                  j < *(uint16_t *) (input_data + j * chunk_size) % 10000; ++j) {
                 q_insert_head(q1, get_random_string());
             }
             before_ticks[i] = cpucycles();
-            q_insert_tail(q, s);
+            q_insert_tail(qi, s);
             after_ticks[i] = cpucycles();
             q_free(q0);
             q_free(q1);
@@ -75,13 +111,13 @@ void measure(int64_t *before_ticks,
         for (size_t i = drop_size; i < number_measurements - drop_size; i++) {
             queue_t *q0 = q_new();
             queue_t *q1 = q_new();
-            queue_t *q = classes[i] ? q1 : q0;
+            queue_t *qi = classes[i] ? q1 : q0;
             for (int j = 0;
                  j < *(uint16_t *) (input_data + j * chunk_size) % 10000; ++j) {
                 q_insert_head(q1, get_random_string());
             }
             before_ticks[i] = cpucycles();
-            q_size(q);
+            q_size(qi);
             after_ticks[i] = cpucycles();
             q_free(q0);
             q_free(q1);
