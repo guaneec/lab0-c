@@ -107,10 +107,12 @@ static bool report(void)
      */
     printf(
         "max t: %+7.2f, max tau: %.2e, (5/tau)^2: %.2e, mu0: %.2e, mu1: %.2e, "
+        "dmu: %-.2e, "
         "s0: %.2e, s1: %.2e, m20: %.2e, m21: %.2e.\n",
         max_t, max_tau, (double) (5 * 5) / (double) (max_tau * max_tau),
-        t->mean[0], t->mean[1], sqrt(t->m2[0] / (t->n[0] - 1)),
-        sqrt(t->m2[0] / (t->n[0] - 1)), t->m2[0], t->m2[1]);
+        t->mean[0], t->mean[1], t->mean[1] - t->mean[0],
+        sqrt(t->m2[0] / (t->n[0] - 1)), sqrt(t->m2[0] / (t->n[0] - 1)),
+        t->m2[0], t->m2[1]);
 
     if (max_t > t_threshold_bananas) {
         return false;
