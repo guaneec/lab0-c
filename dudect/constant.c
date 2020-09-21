@@ -65,7 +65,7 @@ void measure_old(int64_t *before_ticks,
             dut_new();
             dut_insert_head(
                 get_random_string(),
-                *(uint16_t *) (input_data + i * chunk_size) % 10000);
+                *(uint16_t *) (input_data + i * chunk_size) > 0 ? 2 : 1);
             before_ticks[i] = cpucycles();
             dut_insert_tail(s, 1);
             after_ticks[i] = cpucycles();
@@ -76,7 +76,7 @@ void measure_old(int64_t *before_ticks,
             dut_new();
             dut_insert_head(
                 get_random_string(),
-                *(uint16_t *) (input_data + i * chunk_size) % 10000);
+                *(uint16_t *) (input_data + i * chunk_size) > 0 ? 2 : 1);
             before_ticks[i] = cpucycles();
             dut_size(1);
             after_ticks[i] = cpucycles();
@@ -98,10 +98,9 @@ void measure(int64_t *before_ticks,
             queue_t *q0 = q_new();
             queue_t *q1 = q_new();
             queue_t *qi = classes[i] ? q1 : q0;
-            for (int j = 0;
-                 j < *(uint16_t *) (input_data + i * chunk_size) % 10000; ++j) {
-                q_insert_head(q1, get_random_string());
-            }
+            q_insert_head(q0, get_random_string());
+            q_insert_head(q1, get_random_string());
+            q_insert_head(q1, get_random_string());
             before_ticks[i] = cpucycles();
             q_insert_tail(qi, s);
             after_ticks[i] = cpucycles();
@@ -113,10 +112,9 @@ void measure(int64_t *before_ticks,
             queue_t *q0 = q_new();
             queue_t *q1 = q_new();
             queue_t *qi = classes[i] ? q1 : q0;
-            for (int j = 0;
-                 j < *(uint16_t *) (input_data + i * chunk_size) % 10000; ++j) {
-                q_insert_head(q1, get_random_string());
-            }
+            q_insert_head(q0, get_random_string());
+            q_insert_head(q1, get_random_string());
+            q_insert_head(q1, get_random_string());
             before_ticks[i] = cpucycles();
             q_size(qi);
             after_ticks[i] = cpucycles();
