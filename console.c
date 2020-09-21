@@ -20,7 +20,7 @@
 bool simulation = false;
 bool old_measure = false;
 bool write_data;
-int enough_measurements = 100000;
+int total_measurements = 100000;
 static cmd_ptr cmd_list = NULL;
 static param_ptr param_list = NULL;
 static bool block_flag = false;
@@ -107,7 +107,7 @@ void init_cmd()
     add_param("verbose", &verblevel, "Verbosity level", NULL);
     add_param("error", &err_limit, "Number of errors until exit", NULL);
     add_param("echo", (int *) &echo, "Do/don't echo commands", NULL);
-    add_param("measures", &enough_measurements,
+    add_param("measures", &total_measurements,
               "Number of measurements for simulation", NULL);
     add_param("old", (int *) &old_measure, "Use the old measure function",
               NULL);

@@ -28,33 +28,50 @@
  */
 
 #include "fixture.h"
-#include <assert.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../console.h"
-#include "../random.h"
-#include "constant.h"
+#include "cpucycles.h"
+#include "percentile.h"
+#include "random.h"
 #include "ttest.h"
 
-extern int enough_measurements;
+extern int total_measurements;
+#define enough_measurements 10000
+#define number_tests                                                    \
+    (1 /* first order uncropped */ + number_percentiles /* cropped */ + \
+     1 /* second order uncropped */)
+#define number_percentiles 100
 
+static t_ctx *t[number_tests];
+static int64_t percentiles[number_percentiles] = {0};
 extern const int drop_size;
 extern const size_t chunk_size;
 extern const size_t number_measurements;
-static t_ctx *t;
 
-/* threshold values for Welch's t-test */
-#define t_threshold_bananas                                                  \
-    500                         /* Test failed with overwhelming probability \
-                                 */
-#define t_threshold_moderate 10 /* Test failed */
+// threshold values for Welch's t-test
+#define t_threshold_bananas 500  // test failed, with overwhelming probability
+#define t_threshold_moderate \
+    10  // test failed. Pankaj likes 4.5 but let's be more lenient
 
 static void __attribute__((noreturn)) die(void)
 {
     exit(111);
+}
+
+// fill percentiles.
+// the exponential tendency is mean to approximately match
+// the measurements distribution.
+static void prepare_percentiles(int64_t *ticks)
+{
+    for (size_t i = 0; i < number_percentiles; i++) {
+        percentiles[i] = percentile(
+            ticks, 1 - (pow(0.5, 10 * (double) (i + 1) / number_percentiles)),
+            number_measurements);
+    }
 }
 
 static void differentiate(int64_t *exec_times,
@@ -70,19 +87,55 @@ static void update_statistics(int64_t *exec_times, uint8_t *classes)
 {
     for (size_t i = drop_size; i < number_measurements - drop_size; i++) {
         int64_t difference = exec_times[i];
-        /* Cpu cycle counter overflowed or dropped measurement */
-        if (difference <= 0) {
-            continue;
+
+        if (difference < 0) {
+            continue;  // the cpu cycle counter overflowed
         }
-        /* do a t-test on the execution time */
-        t_push(t, difference, classes[i]);
+
+        // do a t-test on the execution time
+        t_push(t[0], difference, classes[i]);
+
+        // do a t-test on cropped execution times, for several cropping
+        // thresholds.
+        for (size_t crop_index = 0; crop_index < number_percentiles;
+             crop_index++) {
+            if (difference < percentiles[crop_index]) {
+                t_push(t[crop_index + 1], difference, classes[i]);
+            }
+        }
+
+        // do a second-order test (only if we have more than 10000
+        // measurements). Centered product pre-processing.
+        if (t[0]->n[0] > 10000) {
+            double centered = (double) difference - t[0]->mean[classes[i]];
+            t_push(t[1 + number_percentiles], centered * centered, classes[i]);
+        }
     }
+}
+
+// which t-test yields max t value?
+static int max_test(void)
+{
+    int ret = 0;
+    double max = 0;
+    for (size_t i = 0; i < number_tests; i++) {
+        if (t[i]->n[0] > enough_measurements) {
+            double x = fabs(t_compute(t[i]));
+            if (max < x) {
+                max = x;
+                ret = i;
+            }
+        }
+    }
+    return ret;
 }
 
 static bool report(void)
 {
-    double max_t = fabs(t_compute(t));
-    double number_traces_max_t = t->n[0] + t->n[1];
+    int mt = max_test();
+    t_ctx *tt = t[mt];
+    double max_t = fabs(t_compute(t[mt]));
+    double number_traces_max_t = t[mt]->n[0] + t[mt]->n[1];
     double max_tau = max_t / sqrt(number_traces_max_t);
 
     printf("\033[A\033[2K\033[A\033[2K");
@@ -106,13 +159,14 @@ static bool report(void)
      *            leak" = have a t value greater than 5.
      */
     printf(
-        "max t: %+7.2f, max tau: %.2e, (5/tau)^2: %.2e, mu0: %.2e, mu1: %.2e, "
+        "max t [%d]: %+7.2f, max tau: %.2e, (5/tau)^2: %.2e, mu0: %.2e, mu1: "
+        "%.2e, "
         "dmu: %-.2e, "
         "s0: %.2e, s1: %.2e, m20: %.2e, m21: %.2e.\n",
-        max_t, max_tau, (double) (5 * 5) / (double) (max_tau * max_tau),
-        t->mean[0], t->mean[1], t->mean[1] - t->mean[0],
-        sqrt(t->m2[0] / (t->n[0] - 1)), sqrt(t->m2[0] / (t->n[0] - 1)),
-        t->m2[0], t->m2[1]);
+        mt, max_t, max_tau, (double) (5 * 5) / (double) (max_tau * max_tau),
+        tt->mean[0], tt->mean[1], tt->mean[1] - tt->mean[0],
+        sqrt(tt->m2[0] / (tt->n[0] - 1)), sqrt(tt->m2[0] / (tt->n[0] - 1)),
+        tt->m2[0], tt->m2[1]);
 
     if (max_t > t_threshold_bananas) {
         return false;
@@ -158,6 +212,10 @@ static bool doit(int mode)
     if (write_data) {
         write_times(exec_times);
     }
+    // we compute the percentiles only if they are not filled yet
+    if (percentiles[number_percentiles - 1] == 0) {
+        prepare_percentiles(exec_times);
+    }
     update_statistics(exec_times, classes);
     bool ret = report();
 
@@ -166,41 +224,53 @@ static bool doit(int mode)
     free(exec_times);
     free(classes);
     free(input_data);
-
     return ret;
 }
 
 static void init_once(void)
 {
     init_dut();
-    t_init(t);
+    for (int i = 0; i < number_tests; ++i) {
+        t_init(t[i]);
+    }
 }
+
 
 bool is_insert_tail_const(void)
 {
     bool result = false;
-    t = malloc(sizeof(t_ctx));
+    for (int i = 0; i < number_tests; ++i) {
+        t[i] = malloc(sizeof(t_ctx));
+    }
+
 
     printf("Testing insert_tail...\n\n\n");
     init_once();
     for (int i = 0;
-         i < enough_measurements / (number_measurements - drop_size * 2) + 1;
+         i < total_measurements / (number_measurements - drop_size * 2) + 1;
          ++i)
         result = doit(0);
-    free(t);
+    for (int i = 0; i < number_tests; ++i) {
+        free(t[i]);
+    }
     return result;
 }
 
 bool is_size_const(void)
 {
     bool result = false;
-    t = malloc(sizeof(t_ctx));
+    for (int i = 0; i < number_tests; ++i) {
+        t[i] = malloc(sizeof(t_ctx));
+    }
+
     printf("Testing size...\n\n\n");
     init_once();
     for (int i = 0;
-         i < enough_measurements / (number_measurements - drop_size * 2) + 1;
+         i < total_measurements / (number_measurements - drop_size * 2) + 1;
          ++i)
         result = doit(1);
-    free(t);
+    for (int i = 0; i < number_tests; ++i) {
+        free(t[i]);
+    }
     return result;
 }
