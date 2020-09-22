@@ -177,13 +177,13 @@ static bool report(void)
     }
 }
 
-void write_times(int64_t *exec_times)
+void write_times(int64_t *exec_times, uint8_t *classes)
 {
     static FILE *f = NULL;
     if (!f)
         f = fopen("./meas.txt", "w");
     for (int i = drop_size; i < number_measurements - drop_size; ++i) {
-        fprintf(f, "%ld\n", exec_times[i]);
+        fprintf(f, "%d %ld\n", classes[i], exec_times[i]);
     }
 }
 
@@ -210,7 +210,7 @@ static bool doit(int mode)
     }
     differentiate(exec_times, before_ticks, after_ticks);
     if (write_data) {
-        write_times(exec_times);
+        write_times(exec_times, classes);
     }
     // we compute the percentiles only if they are not filled yet
     if (percentiles[number_percentiles - 1] == 0) {
