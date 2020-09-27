@@ -13,7 +13,7 @@
 
 #define NR_MEASURE 150
 /* Allow random number range from 0 to 65535 */
-const size_t chunk_size = 16;
+const size_t chunk_size = 32;
 /* Number of measurements per test */
 const size_t number_measurements = NR_MEASURE;
 const int drop_size = 20;
@@ -39,7 +39,20 @@ char *get_random_string(void)
 
 void prepare_inputs(uint8_t *input_data, uint8_t *classes)
 {
-    randombytes(input_data, number_measurements * chunk_size);
+    FILE *f = fopen("div.txt", "r");
+    uint64_t m0;
+    uint32_t m1, n, d, qq;
+    for (int i = 0; i < number_measurements &&
+                    fscanf(f, "%lu %u %u %u %u", &m0, &m1, &n, &d, &qq) == 5;
+         ++i) {
+        *(uint64_t *) (input_data + i * chunk_size) = m0;
+        *(uint32_t *) (input_data + i * chunk_size + 8) = m1;
+        *(uint32_t *) (input_data + i * chunk_size + 12) = n;
+        *(uint32_t *) (input_data + i * chunk_size + 16) = d;
+        *(uint32_t *) (input_data + i * chunk_size + 20) = qq;
+    }
+    fclose(f);
+
     for (size_t i = 0; i < number_measurements; i++) {
         classes[i] = randombit();
         if (classes[i] == 0 && old_measure)
@@ -109,17 +122,24 @@ void measure(int64_t *before_ticks,
         }
     } else {
         for (size_t i = 0; i < number_measurements; i++) {
-            queue_t *q0 = q_new();
-            queue_t *q1 = q_new();
-            queue_t *qi = classes[i] ? q1 : q0;
-            q_insert_head(q0, get_random_string());
-            q_insert_head(q1, get_random_string());
-            q_insert_head(q1, get_random_string());
-            before_ticks[i] = cpucycles();
-            q_size(qi);
-            after_ticks[i] = cpucycles();
-            q_free(q0);
-            q_free(q1);
+            int c = classes[i];
+            uint64_t m0 = *(uint64_t *) (input_data + i * chunk_size);
+            uint32_t m1 = *(uint32_t *) (input_data + i * chunk_size + 8);
+            uint32_t n = *(uint32_t *) (input_data + i * chunk_size + 12);
+            uint32_t d = *(uint32_t *) (input_data + i * chunk_size + 16);
+            uint32_t qq = *(uint32_t *) (input_data + i * chunk_size + 20);
+            uint32_t qqq = 0;
+            if (c) {
+                before_ticks[i] = cpucycles();
+                qqq = ((uint64_t) m1 * (uint64_t) n) >> 32;
+                after_ticks[i] = cpucycles();
+            } else {
+                before_ticks[i] = cpucycles();
+                qqq = ((__uint128_t) m0 * n) >> 64;
+                after_ticks[i] = cpucycles();
+            }
+            assert(qqq == qq);
+            assert(n / d == qq);
         }
     }
 }

@@ -1,0 +1,5 @@
+# option old 1
+# option write 1
+option measures 10000000
+option simulation 1
+size
